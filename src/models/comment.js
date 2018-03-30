@@ -13,7 +13,7 @@ const schema = new Schema({
 schema.pre('save', function () {
   if (!this.html) return;
   this.html = sanitizeHtml(this.html, {
-    allowedTags: ['b', 'i', 's', 'em', 'strong', 'sup', 'sub', 'blockquote', 'a', 'img'],
+    allowedTags: ['p', 'b', 'i', 's', 'em', 'strong', 'sup', 'sub', 'blockquote', 'a', 'img'],
     allowedSchemes: ['http', 'https', 'data'],
     allowedAttributes: {
       'a': ['href'],

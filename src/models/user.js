@@ -1,11 +1,16 @@
+import { pbkdf2, randomBytes } from 'crypto';
 import mongoose from 'mongoose';
 import sanitizeHtml from 'sanitize-html';
+
+import { thunkToPromise } from '../utils';
 
 const { Model, Schema } = mongoose;
 
 const schema = new Schema({
-  username: { type: String, required: true },
-  created: { type: Date, required: true },
+  firstName: { type: String, required: true, select: false },
+  lastName: { type: String, required: true, select: false },
+  username: { type: String, required: true, unique: true },
+  created: { type: Date, required: true, default: Date.now },
   password: { type: String, required: true, select: false },
 });
 schema.pre('save', async function () {
@@ -18,7 +23,7 @@ schema.pre('save', async function () {
   // generate salt for pbkdf2
   if (!this.isModified('password')) return;
 
-  const salt = await thunkToPromise(done => crypto.randomBytes(SALT_BYTES));
+  const salt = await thunkToPromise(done => randomBytes(SALT_BYTES, done));
   const buf = Buffer.allocUnsafe(8 + SALT_BYTES + HASH_BYTES);
   // include the size of the salt
   buf.writeUInt32BE(SALT_BYTES, 0, true);
@@ -26,14 +31,14 @@ schema.pre('save', async function () {
   buf.writeUInt32BE(ITERATIONS, 4, true);
   salt.copy(buf, 8);
 
-  // save the plaintext password for passing into the hashing function
+  // keep a reference to the plaintext password for passing into the hashing function
   const plaintext = this.password;
   this.password = buf.toString('base64');
   const hash = await this.hashPassword(plaintext);
   hash.copy(buf, 8 + SALT_BYTES);
   this.password = buf.toString('base64');
 });
-export default class Comment extends Model {
+export default class User extends Model {
   async hashPassword(plaintext) {
     if (!('password' in this._doc)) throw new Error('Password field excluded from projection');
     const buf = Buffer.from(this.password, 'base64');
@@ -44,7 +49,7 @@ export default class Comment extends Model {
     const iterations = buf.readUInt32BE(4);
     const salt = buf.slice(8, 8 + saltBytes);
 
-    return await thunkToPromise(done => crypto.pbkdf2(plaintext, salt, iterations, hashBytes, 'sha256', done));
+    return await thunkToPromise(done => pbkdf2(plaintext, salt, iterations, hashBytes, 'sha256', done));
   }
 
   async verifyPassword(password) {
@@ -53,9 +58,8 @@ export default class Comment extends Model {
 
     const saltBytes = buf.readUInt32BE(0);
     const currentHash = buf.slice(8 + saltBytes);
-
     return hash.equals(currentHash);
   }
 }
 
-mongoose.model(Comment, schema, 'comments');
+mongoose.model(User, schema, 'users');

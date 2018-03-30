@@ -29,7 +29,6 @@ router.get('*', (ctx, next) => {
   }
 });
 
-
 router
   .param('articleName', (articleName, ctx, next) => {
     const { year, month } = ctx.params;
@@ -40,5 +39,9 @@ router
   .get('/:year/:month/:articleName/comments', ctrl.getComments)
   .post('/:year/:month/:articleName/comments', ctrl.postComment);
 
+router
+  .get('/session', ctrl.getSession)
+  .post('/session', ctrl.logIn)
+  .delete('/session', ctrl.logOut);
 
 export default router.routes();
