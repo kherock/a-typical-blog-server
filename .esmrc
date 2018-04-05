@@ -1,0 +1,8 @@
+{
+  "mode": "auto",
+  "cjs": {
+    "cache": true,
+    "interop": true,
+    "namedExports": true
+  }
+}
